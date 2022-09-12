@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PageSpeed Tester</title>
+</head>
+
+<body>
+    <form id="pagespeed-form">
+        <p><label for="url">Enter an https:// URL:</label></p>
+        <input type="url" name="url" id="url" placeholder="https://example.com" value="https://jerome-toole.github.io/yuck/" pattern="https://.*" size="50" required>
+        <button type="submit">Submit</button>
+    </form>
+
+    <hr>
+
+    <div id="results">
+        <p id="status"></p>
+    </div>
+
+
+    <div id="json-output">
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const resultsEl = document.getElementById('results');
+        const jsonEl = document.getElementById('json-output');
+
+        function run(event) {
+            event.preventDefault();
+
+            console.log('new test', document.getElementById("url").value);
+
+            const url = setUpQuery();
+            console.log('Fetching...');
+            statusEl.textContent = 'Fetching...';
+
+            fetch(url)
+                .then(response => response.json())
+                .then(json => {
+                    console.log(json);
+
+                    // See https://developers.google.com/speed/docs/insights/v5/reference/pagespeedapi/runpagespeed#response
+                    showInitialContent(json.id);
+                    const lighthouseResult = json.lighthouseResult;
+
+                    const bytes = lighthouseResult?.audits['total-byte-weight']?.numericValue;
+
+                    const lighthouseMetrics = {
+                        'Transferred data (Bytes)': bytes,
+                        'Speed Index': round(lighthouseResult?.audits['speed-index']?.numericValue, 2),
+                        'Time To Interactive': lighthouseResult?.audits['interactive']?.numericValue,
+                        'Performance': lighthouseResult?.categories?.performance?.score,
+                    };
+
+                    showLighthouseContent(lighthouseMetrics);
+                });
+        }
+
+        function convertBytestoKB(bytes) {
+            return round(bytes / 1024, 0);
+        }
+
+        function convertBytestoMB(bytes) {
+            return round(bytes / 1024 / 1024, 1);
+        }
+
+        function round(value, decimals) {
+            return Number(Math.round(value + 'e' + decimals) + 'e-' + decimals);
+        }
+
+        function setUpQuery() {
+            const query = new URLSearchParams({
+                url: document.getElementById("url").value,
+                key: 'AIzaSyAi4sDm-0n8o1EIUlirYjxHK84ksLvhMfc',
+                strategy: 'mobile',
+            });
+
+            const url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?" + query.toString();
+
+            return url;
+        }
+
+        function showInitialContent(id) {
+            resultsEl.innerHTML = '';
+            const title = document.createElement('h1');
+            title.textContent = 'PageSpeed Insights API Demo';
+            resultsEl.appendChild(title);
+            const page = document.createElement('p');
+            page.textContent = `Page tested: ${id}`;
+            resultsEl.appendChild(page);
+        }
+
+        function showLighthouseContent(lighthouseMetrics) {
+            const lighthouseHeader = document.createElement('h2');
+            lighthouseHeader.textContent = "Lighthouse Results";
+            resultsEl.appendChild(lighthouseHeader);
+            for (key in lighthouseMetrics) {
+                const p = document.createElement('p');
+                p.textContent = `${key}: ${lighthouseMetrics[key]}`;
+                resultsEl.appendChild(p);
+            }
+
+            const date = new Date().toLocaleString();
+            const jsonContent = JSON.stringify(lighthouseMetrics, null, 4);
+
+            jsonEl.innerHTML = `<pre>${jsonContent}</pre>`;
+        }
+
+        function logSubmit(event) {
+            log.textContent = `Form Submitted! Time stamp: ${event.timeStamp}`;
+            event.preventDefault();
+        }
+
+        const form = document.getElementById('pagespeed-form');
+        const log = document.getElementById('log');
+        form.addEventListener('submit', run);
+    </script>
+
+    <style>
+        body {
+            font-size: 20px;
+            margin: 40px 0;
+            padding: 0 40px;
+        }
+
+        input {
+            font-size: 1em;
+        }
+
+        button {
+            font-size: 1em;
+        }
+
+        pre {
+            font-size: 14px;
+            padding: 1em;
+            color: #444;
+            background: #eee;
+            border-radius: 9px;
+        }
+    </style>
+</body>
+
+</html>
